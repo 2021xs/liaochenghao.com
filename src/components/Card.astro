@@ -1,17 +1,26 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import { getPostUrl } from "@/utils/getPostPaths";
-import { BROWSE_TAGS } from "@/utils/browseTags";
 import { toTransitionName } from "@/utils/toTransitionName";
 import Datetime from "./Datetime.astro";
 
 type Props = {
   variant?: "h2" | "h3";
+  articleBlock?: boolean;
   showPrimaryType?: boolean;
 } & CollectionEntry<"posts">;
 
+const CONTENT_TYPE_LABELS = [
+  { tag: "tech", label: "Engineering" },
+  { tag: "project", label: "Project" },
+  { tag: "interview", label: "Interview" },
+  { tag: "guide", label: "Guide" },
+  { tag: "thought", label: "Thought" },
+] as const;
+
 const {
   variant: Heading = "h2",
+  articleBlock = false,
   showPrimaryType = false,
   id,
   data,
@@ -19,30 +28,60 @@ const {
 } = Astro.props;
 
 const { title, description, tags, ...props } = data;
-const primaryType = showPrimaryType
-  ? BROWSE_TAGS.find(({ tag }) => tags.includes(tag))
-  : undefined;
+const primaryType =
+  articleBlock || showPrimaryType
+    ? CONTENT_TYPE_LABELS.find(({ tag }) => tags.includes(tag))
+    : undefined;
 ---
 
-<li class="my-6">
+<li
+  class:list={[
+    articleBlock
+      ? "border-border hover:border-accent/40 hover:bg-accent/5 focus-within:border-accent/50 focus-within:bg-accent/5 my-4 rounded-md border bg-transparent p-4 sm:p-5"
+      : "my-6",
+  ]}
+>
+  {
+    articleBlock && (
+      <Datetime
+        {...props}
+        label={primaryType?.label}
+        labelFirst
+        hideIcon
+        class="mb-2"
+      />
+    )
+  }
   <a
     href={getPostUrl(id, filePath, Astro.currentLocale)}
     data-astro-prefetch="viewport"
+    title={title}
     class:list={[
-      "text-accent inline-block",
+      "text-accent",
+      { "block w-full min-w-0": articleBlock },
+      { "inline-block": !articleBlock },
       {
         "text-lg leading-[1.45] font-semibold sm:text-[1.375rem]":
-          Heading === "h3",
-        "text-lg leading-snug font-medium": Heading === "h2",
+          articleBlock || Heading === "h3",
+        "text-lg leading-snug font-medium": !articleBlock && Heading === "h2",
       },
       "decoration-dashed underline-offset-4 hover:underline",
       "focus-visible:no-underline focus-visible:underline-offset-0",
     ]}
   >
-    <Heading transition:name={toTransitionName(id)}>
+    <Heading
+      transition:name={toTransitionName(id)}
+      class:list={{
+        "line-clamp-2 sm:line-clamp-none sm:block sm:truncate": articleBlock,
+      }}
+    >
       {title}
     </Heading>
   </a>
-  <Datetime {...props} label={primaryType?.label} />
-  <p class="mt-2 leading-relaxed font-normal">{description}</p>
+  {!articleBlock && <Datetime {...props} label={primaryType?.label} />}
+  <p
+    class:list={["leading-relaxed font-normal", articleBlock ? "mt-3" : "mt-2"]}
+  >
+    {description}
+  </p>
 </li>

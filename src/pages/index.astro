@@ -100,7 +100,7 @@ const emailUrl = config.socials.find(
           <h2 class="text-xl font-semibold">Latest Writing</h2>
           <ul>
             {sortedPosts.slice(0, postsConfig.perIndex).map(data => (
-              <Card variant="h3" showPrimaryType {...data} />
+              <Card variant="h3" articleBlock {...data} />
             ))}
           </ul>
           <div class="mt-7">
