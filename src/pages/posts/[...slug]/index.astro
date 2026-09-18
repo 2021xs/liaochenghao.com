@@ -121,7 +121,7 @@ const ogImage = ogImageUrl
 
     <h1
       style={{ viewTransitionName: toTransitionName(post.id) }}
-      class="text-accent block max-w-full text-2xl leading-tight font-bold break-words sm:text-3xl"
+      class="text-foreground block max-w-full text-[1.75rem] leading-tight font-bold break-words sm:text-[2rem]"
     >
       {title}
     </h1>
@@ -140,8 +140,17 @@ const ogImage = ogImageUrl
       <EditPost {hideEditPost} {post} class="max-sm:hidden" />
     </div>
 
-    <ul aria-label="Tags" class="mt-3 flex flex-wrap gap-3">
-      {tags.map(tag => <Tag tag={slugifyStr(tag)} tagName={tag} size="sm" />)}
+    <ul aria-label="Tags" class="mt-3 flex flex-wrap text-sm">
+      {
+        tags.map(tag => (
+          <Tag
+            tag={slugifyStr(tag)}
+            tagName={tag}
+            size="sm"
+            variant="metadata"
+          />
+        ))
+      }
     </ul>
 
     <article

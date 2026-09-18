@@ -11,6 +11,8 @@ tags:
 draft: false
 ---
 
+> **Source**
+>
 > 原文：[Is Having Agents in the Room Meant to Be Chaotic?](https://raft.build/resources/blog/is-having-agents-in-the-room-meant-to-be-chaotic/)
 >
 > 相关产品介绍：[Introducing Raft: Where Humans and Agents Build Together](https://raft.build/resources/blog/introducing-raft-where-humans-and-agents-build-together/)
@@ -45,7 +47,7 @@ Agent Runtime
 Agent = Prompt + Tool Call
 ```
 
-## 核心观点
+## 1. 为什么 Agent Runtime 开始像后端系统
 
 - Agent 不应只被理解为 `Prompt + Tool Call`，而应被视为运行在持续变化环境中的异步 worker。
 - Agent 执行期间外部状态可能变化，因此提交前需要 freshness check，避免基于旧状态行动。
@@ -55,7 +57,7 @@ Agent = Prompt + Tool Call
 - 长时间等待不应占用 Agent run，应持久化逻辑状态，并由未来事件重新唤醒。
 - 对 EvoAgent 而言，这些内容目前主要是架构启发和后续规划，不代表相关能力已经全部实现。
 
-## 1. 并发控制：Agent 工作期间，世界可能已经变了
+## 2. Raft 的几个关键机制
 
 传统聊天里，人看到一条消息，很快就回复了。
 
@@ -144,7 +146,7 @@ WHERE version = old_version
 
 本质非常接近。
 
-## 2. Task Claim：另一个并发问题是“多人同时动手”
+### Task Claim：避免多个 Agent 同时动手
 
 Freshness Hold 主要解决旧状态问题。
 
@@ -202,7 +204,7 @@ Task Claim
 
 这两个不能完全混为一谈。
 
-## 3. Tool 调用失败不能只返回 failed
+### Partial Result：Tool 调用失败不能只返回 failed
 
 我觉得这是文章里非常有工程价值的一点。
 
@@ -317,7 +319,7 @@ Intent
 - retry semantics
 - workflow recovery
 
-## 4. Inbox：不是所有世界消息都应该进入 Agent Context
+### Inbox：不是所有消息都应进入 Context
 
 这一部分和我之前提到的“路由投递中心”非常像。
 
@@ -372,7 +374,7 @@ Routing / Inbox
 
 其他信息根本不用进入 Context。
 
-### Routing 和 Attention 其实还可以再区分
+**Routing 和 Attention 还可以再区分。**
 
 更严格一点，可以拆成：
 
@@ -410,7 +412,7 @@ Context Window
 
 世界状态和 Agent 当前注意到的信息，本来就不应该是同一个东西。
 
-## 5. Reminder：不是让 Agent 等，而是先退出
+### Reminder：不是让 Agent 等，而是先退出
 
 这一点我一开始觉得最容易被误解。
 
@@ -466,7 +468,7 @@ next_step = CI finished 后检查结果
 
 然后当前执行直接结束。
 
-### 后续再唤醒
+**后续再唤醒。**
 
 未来由：
 
@@ -509,7 +511,7 @@ Wakeup
 
 比普通 checkpoint 更准确。
 
-## 6. 五个机制其实对应五类 Agent Runtime 问题
+## 3. 这些机制对应哪些 Runtime 问题
 
 把文章重新整理以后，我觉得核心非常清楚：
 
@@ -558,7 +560,7 @@ Freshness Check
 
 我觉得这才是整篇文章真正有价值的 mental model。
 
-## 7. 对 EvoAgent 可以吸收什么
+## 4. EvoAgent 可以吸收什么
 
 > **状态说明**：EvoAgent 当前已经实现 Lead、Security、Correctness/Reliability、Critic 的多 Agent 审查编排，并具备节点级 checkpoint/resume 基础。以下 Freshness Guard、finding ownership、effect-aware AutoFix、Event Router、CI wakeup/resume 等内容，属于从原文得到的启发或后续规划；除非明确标注为“已实现”，不代表当前已经落地。
 
@@ -570,7 +572,7 @@ Freshness Check
 
 EvoAgent 现在有哪些真实问题，本质上属于这些系统问题？
 
-### 第一类：PR 在 Review 期间发生变化
+### PR 在 Review 期间发生变化
 
 **从原文得到的启发（尚未实现）：PR Freshness Guard。**
 
@@ -638,7 +640,7 @@ version-aware review
 
 这种东西会非常有 runtime evidence。
 
-## 8. 第二类：多个 Agent 重复发现 / 重复修复问题
+### 多个 Agent 重复发现或修复问题
 
 **当前设计：**
 
@@ -701,7 +703,7 @@ file
 
 这就已经吸收了文章的思想。
 
-## 9. 第三类：AutoFix 一定要做 Effect-aware
+### AutoFix 要做 Effect-aware
 
 **后续规划：Effect-aware AutoFix，尚未实现。**
 
@@ -775,7 +777,7 @@ partial failure
 
 技术可信度会高很多。
 
-## 10. 第四类：把 GitHub / CI / Timer 都统一成事件
+### 把 GitHub、CI 和 Timer 统一成事件
 
 **后续规划：Event Router，尚未实现。**
 
@@ -839,7 +841,7 @@ Event
 
 架构会干净很多。
 
-## 11. 第五类：等待 CI / 测试时做 checkpoint
+### 等待 CI 或测试时做 checkpoint
 
 **已实现与后续规划的边界：** EvoAgent 已有节点级 checkpoint/resume 基础；下面的 CI 事件驱动等待与恢复属于后续规划，尚未实现。
 
@@ -891,7 +893,7 @@ continue
 
 `Durable Agent Workflow`
 
-## 12. 哪些值得现在做，哪些先别做
+## 5. 哪些现在做，哪些暂缓
 
 **后续规划：以下是优先级建议，不代表已经实现。**
 
@@ -908,7 +910,7 @@ continue
 
 我会这样分。
 
-### 当前 MVP 强烈值得吸收
+**当前 MVP 强烈值得吸收：**
 
 1. PR Freshness Guard
 2. Effect-aware execution state
@@ -917,7 +919,7 @@ continue
 
 这几个都非常贴近 PR Reviewer 的真实问题。
 
-### 可以做轻量版本
+**可以做轻量版本：**
 
 5. Event Router
 6. CI wakeup / resume
@@ -931,7 +933,7 @@ continue
 
 这几条路径即可。
 
-### 暂时不要做成通用基础设施
+**暂时不要做成通用基础设施：**
 
 - 通用 Agent Inbox
 - 通用 Distributed Lock Service
@@ -949,7 +951,7 @@ continue
 
 **把 Raft / Temporal 重新实现一遍。**
 
-## 13. 对 EvoAgent 最有价值的架构转变
+### 长期的架构转变
 
 **后续规划：以下是目标架构方向，不代表已经实现。**
 
@@ -999,7 +1001,7 @@ Freshness / Coordination
 
 这两者技术含量差别其实很大。
 
-## 最终总结
+## 6. 总结
 
 我对这篇文章最大的收获可以概括成一句话：
 
