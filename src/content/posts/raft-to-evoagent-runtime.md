@@ -1,7 +1,7 @@
 ---
 pubDatetime: 2026-09-18T15:09:56+08:00
 title: "从 Raft 到 EvoAgent：Agent Runtime 的并发、副作用与持久化执行"
-description: "从 Raft 的协作机制出发，讨论 Agent Runtime 的并发控制、副作用追踪、事件路由与持久化执行，并梳理对 EvoAgent 的启发。"
+description: "讨论 Agent 从一次性推理走向长期执行后，如何处理并发、副作用、事件路由与持久化，并将 Raft 的机制映射到 EvoAgent。"
 tags:
   - agent
   - distributed-systems
@@ -11,26 +11,78 @@ tags:
 draft: false
 ---
 
-> **Source**
->
-> 原文：[Is Having Agents in the Room Meant to Be Chaotic?](https://raft.build/resources/blog/is-having-agents-in-the-room-meant-to-be-chaotic/)
->
-> 相关产品介绍：[Introducing Raft: Where Humans and Agents Build Together](https://raft.build/resources/blog/introducing-raft-where-humans-and-agents-build-together/)
->
-> 说明：本文中的 Raft 指 AI-Native 协作产品，不是分布式系统中的 Raft consensus algorithm。文中的 CAS、lock、Effect Ledger、durable continuation 等，是我从产品机制出发做的后端与分布式系统类比，并非 Raft 官方术语。
+传统 Agent 很容易被理解成：
 
-这篇文章表面上是在讲一个 AI-Native 群聊系统 Raft，但我觉得真正值得看的并不是“Agent 聊天软件应该长什么样”，而是：
+```text
+用户请求
+→ LLM 推理
+→ 调一次工具
+→ 返回答案
+```
 
-当 Agent 从一次性的 LLM 调用，变成一个会长期执行、调用工具、修改外部世界、等待异步结果、与其他 Agent 并发工作的实体之后，传统聊天系统和传统 Agent Loop 都会暴露出一批新的系统问题。
+在这个模型里，很多系统问题并不明显。
 
-这些问题本质上已经很像后端和分布式系统问题：
+但当 Agent 开始执行几十秒甚至几分钟、调用多个外部工具、修改 GitHub / 数据库 / 文件、与其他 Agent 并发工作，还要等待 CI、Webhook 或 Human Approval 时，事情就变了。
 
-- 并发冲突
-- 副作用一致性
-- 事件路由
-- 暂停与恢复
+Agent 不再只是一次 LLM 调用，而是一个长期运行、会产生副作用的异步 worker。
 
-所以这篇文章真正讨论的，可以理解成：
+这时会出现一组很具体的问题：
+
+- Agent Review PR 的时候，开发者又 push 了 commit，怎么办？
+- Security Agent 和 Correctness Agent 同时发现同一个问题，怎么办？
+- Agent push 成功但 create PR 失败，重试会不会重复 push？
+- Agent 要等 CI 20 分钟，难道整个 Agent run 一直挂着？
+- 系统里来了 100 个事件，难道全部塞进每个 Agent 的 Context？
+
+这些问题也恰好会出现在我正在做的 EvoAgent PR Reviewer 中。因此，这篇文章前半部分会讨论这些问题需要什么 Runtime 语义，后半部分再把它们映射回真实的 PR Review、AutoFix 和 CI 场景。
+
+## 1. Agent Runtime 真正需要解决什么
+
+过去的执行过程可以简化成：
+
+```text
+Request
+→ LLM
+→ Tool
+→ Response
+```
+
+而一个长期运行的 Agent 更接近：
+
+```text
+Event
+→ Agent
+→ Read State
+→ Reason
+→ Tool
+→ External Effect
+→ Wait
+→ New Event
+→ Resume
+→ More Effects
+→ Commit
+```
+
+执行模型变化以后，Runtime 需要面对五类问题：
+
+```text
+状态会变
+→ stale execution
+
+多个 Agent 会抢同一个任务
+→ concurrent execution
+
+Tool 会产生真实副作用
+→ partial failure / retry
+
+外界事件越来越多
+→ routing / attention
+
+任务会跨越很长时间
+→ suspend / resume
+```
+
+所以 Agent Runtime 的核心问题，已经开始从“模型怎么推理”转向“执行过程怎么管理”。它需要的不只是 `Prompt + Tool Call`，而是：
 
 ```text
 Agent Runtime
@@ -41,23 +93,13 @@ Agent Runtime
 + Durable Execution
 ```
 
-而不是简单的：
+恰好，AI-Native 协作产品 Raft 在真实的多人 + Multi-Agent 环境里遇到了类似问题，它的一组机制很适合作为 Runtime 设计样本。
 
-```text
-Agent = Prompt + Tool Call
-```
+本文受到 Raft 文章 [Is Having Agents in the Room Meant to Be Chaotic?](https://raft.build/resources/blog/is-having-agents-in-the-room-meant-to-be-chaotic/) 启发。这里的 Raft 不是分布式系统中的 Raft consensus algorithm；CAS、lock、Effect Ledger、durable continuation 等，是我从产品机制出发做的工程类比，并非 Raft 官方术语。
 
-## 1. 为什么 Agent Runtime 开始像后端系统
+## 2. Raft 给出的五种 Runtime 语义
 
-- Agent 不应只被理解为 `Prompt + Tool Call`，而应被视为运行在持续变化环境中的异步 worker。
-- Agent 执行期间外部状态可能变化，因此提交前需要 freshness check，避免基于旧状态行动。
-- 多 Agent 可能同时处理同一任务，需要 ownership、claim 或 dedup 机制协调。
-- Tool 调用可能部分成功，Runtime 应记录实际副作用，而不能只返回 success / failed。
-- 世界事件不应全部进入 Context，需要通过 routing、inbox 和 attention policy 控制信息流。
-- 长时间等待不应占用 Agent run，应持久化逻辑状态，并由未来事件重新唤醒。
-- 对 EvoAgent 而言，这些内容目前主要是架构启发和后续规划，不代表相关能力已经全部实现。
-
-## 2. Raft 的几个关键机制
+### 基于旧状态执行：Freshness Hold
 
 传统聊天里，人看到一条消息，很快就回复了。
 
@@ -102,8 +144,6 @@ Agent 还基于 S0 生成答案
 
 这和我们熟悉的读写冲突其实是同一个问题。
 
-### Freshness Hold
-
 文章里的 Freshness Hold，本质上可以理解成：
 
 `Optimistic Lock / CAS`
@@ -146,7 +186,7 @@ WHERE version = old_version
 
 本质非常接近。
 
-### Task Claim：避免多个 Agent 同时动手
+### 多 Agent 重复执行：Task Claim
 
 Freshness Hold 主要解决旧状态问题。
 
@@ -204,7 +244,7 @@ Task Claim
 
 这两个不能完全混为一谈。
 
-### Partial Result：Tool 调用失败不能只返回 failed
+### Tool 部分失败：Partial Result
 
 我觉得这是文章里非常有工程价值的一点。
 
@@ -319,7 +359,7 @@ Intent
 - retry semantics
 - workflow recovery
 
-### Inbox：不是所有消息都应进入 Context
+### 世界事件如何进入 Agent：Inbox
 
 这一部分和我之前提到的“路由投递中心”非常像。
 
@@ -412,7 +452,7 @@ Context Window
 
 世界状态和 Agent 当前注意到的信息，本来就不应该是同一个东西。
 
-### Reminder：不是让 Agent 等，而是先退出
+### 长时间等待：Reminder
 
 这一点我一开始觉得最容易被误解。
 
@@ -511,7 +551,7 @@ Wakeup
 
 比普通 checkpoint 更准确。
 
-## 3. 这些机制对应哪些 Runtime 问题
+## 3. 把它们放在一起：Agent Execution Lifecycle
 
 把文章重新整理以后，我觉得核心非常清楚：
 
@@ -560,7 +600,7 @@ Freshness Check
 
 我觉得这才是整篇文章真正有价值的 mental model。
 
-## 4. EvoAgent 可以吸收什么
+## 4. 放回 EvoAgent：问题如何出现在真实 Workflow
 
 > **状态说明**：EvoAgent 当前已经实现 Lead、Security、Correctness/Reliability、Critic 的多 Agent 审查编排，并具备节点级 checkpoint/resume 基础。以下 Freshness Guard、finding ownership、effect-aware AutoFix、Event Router、CI wakeup/resume 等内容，属于从原文得到的启发或后续规划；除非明确标注为“已实现”，不代表当前已经落地。
 
@@ -572,7 +612,9 @@ Freshness Check
 
 EvoAgent 现在有哪些真实问题，本质上属于这些系统问题？
 
-### PR 在 Review 期间发生变化
+### PR Review：Freshness Guard 与 Finding Dedup
+
+**PR 在 Review 期间发生变化。**
 
 **从原文得到的启发（尚未实现）：PR Freshness Guard。**
 
@@ -640,7 +682,7 @@ version-aware review
 
 这种东西会非常有 runtime evidence。
 
-### 多个 Agent 重复发现或修复问题
+**多个 Agent 重复发现或修复问题。**
 
 **当前设计：**
 
@@ -703,7 +745,7 @@ file
 
 这就已经吸收了文章的思想。
 
-### AutoFix 要做 Effect-aware
+### AutoFix：Effect-aware Execution
 
 **后续规划：Effect-aware AutoFix，尚未实现。**
 
@@ -777,7 +819,59 @@ partial failure
 
 技术可信度会高很多。
 
-### 把 GitHub、CI 和 Timer 统一成事件
+### CI Validation：Checkpoint 与 Event-driven Resume
+
+**已实现与后续规划的边界：** EvoAgent 已有节点级 checkpoint/resume 基础；下面的 CI 事件驱动等待与恢复属于后续规划，尚未实现。
+
+这个也很自然。
+
+比如 AutoFix：
+
+```text
+生成 patch
+↓
+push branch
+↓
+等待 CI
+```
+
+不要：
+
+`Agent 一直轮询 CI`
+
+而是：
+
+```text
+FixWorkflow checkpoint:
+
+state = WAITING_FOR_CI
+commit = abc123
+next = evaluate_ci_result
+```
+
+然后：
+
+`结束本轮 execution`
+
+CI webhook 回来：
+
+`CICompleted(commit=abc123)`
+
+Router 找到对应 workflow：
+
+```text
+wake
+↓
+load checkpoint
+↓
+continue
+```
+
+这样就真正形成了：
+
+`Durable Agent Workflow`
+
+### GitHub、CI 与 Human：统一事件路由
 
 **后续规划：Event Router，尚未实现。**
 
@@ -841,59 +935,7 @@ Event
 
 架构会干净很多。
 
-### 等待 CI 或测试时做 checkpoint
-
-**已实现与后续规划的边界：** EvoAgent 已有节点级 checkpoint/resume 基础；下面的 CI 事件驱动等待与恢复属于后续规划，尚未实现。
-
-这个也很自然。
-
-比如 AutoFix：
-
-```text
-生成 patch
-↓
-push branch
-↓
-等待 CI
-```
-
-不要：
-
-`Agent 一直轮询 CI`
-
-而是：
-
-```text
-FixWorkflow checkpoint:
-
-state = WAITING_FOR_CI
-commit = abc123
-next = evaluate_ci_result
-```
-
-然后：
-
-`结束本轮 execution`
-
-CI webhook 回来：
-
-`CICompleted(commit=abc123)`
-
-Router 找到对应 workflow：
-
-```text
-wake
-↓
-load checkpoint
-↓
-continue
-```
-
-这样就真正形成了：
-
-`Durable Agent Workflow`
-
-## 5. 哪些现在做，哪些暂缓
+## 5. 实现边界：吸收 Runtime 语义，而不是造基础设施
 
 **后续规划：以下是优先级建议，不代表已经实现。**
 
@@ -951,7 +993,7 @@ continue
 
 **把 Raft / Temporal 重新实现一遍。**
 
-### 长期的架构转变
+**长期的架构转变。**
 
 **后续规划：以下是目标架构方向，不代表已经实现。**
 
@@ -1028,4 +1070,4 @@ Agent 不能只被当成一个会自动回复消息的人，它更像一个运�
 
 而对 EvoAgent 来说，最值得吸收的也不是“重新设计聊天系统”，而是这套思维：
 
-把 Agent workflow 从一次性推理流程，升级成一个有版本、有状态、有副作用记录、能暂停恢复的长期执行过程。
+把 Agent workflow 从一次性推理流程，升级成一个有版本、有状态、有副作用、可暂停、可恢复，并与外界持续交互的异步执行实体。
