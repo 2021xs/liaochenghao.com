@@ -47,13 +47,25 @@ const isActive = (path: string) => {
   <div
     class="border-border bg-background relative flex w-full items-baseline justify-between border-b py-4 sm:items-center sm:py-6"
   >
-    <a
-      href={getRelativeLocaleUrl(locale, "")}
-      data-astro-prefetch="viewport"
-      class="absolute py-1 text-xl leading-8 font-semibold whitespace-nowrap sm:static sm:my-auto sm:text-2xl sm:leading-none"
+    <div
+      class="absolute flex items-center gap-3 py-1 sm:static sm:py-0 md:min-w-0"
     >
-      {site.title}
-    </a>
+      <a
+        href={getRelativeLocaleUrl(locale, "")}
+        data-astro-prefetch="viewport"
+        class="text-xl leading-8 font-semibold whitespace-nowrap sm:my-auto sm:text-2xl sm:leading-none"
+      >
+        {site.title}
+      </a>
+      <p
+        class="text-muted-foreground hidden items-center gap-1.5 text-xs font-normal whitespace-nowrap md:flex"
+      >
+        <span
+          aria-hidden="true"
+          class="bg-status size-1.5 shrink-0 rounded-full"></span>
+        <span>SEU · Hangzhou · ByteDance ing</span>
+      </p>
+    </div>
     <nav
       id="nav-menu"
       class="flex w-full flex-col items-center sm:ms-2 sm:flex-row sm:justify-end sm:space-x-4 sm:py-0"
