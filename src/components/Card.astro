@@ -1,16 +1,27 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import { getPostUrl } from "@/utils/getPostPaths";
+import { BROWSE_TAGS } from "@/utils/browseTags";
 import { toTransitionName } from "@/utils/toTransitionName";
 import Datetime from "./Datetime.astro";
 
 type Props = {
   variant?: "h2" | "h3";
+  showPrimaryType?: boolean;
 } & CollectionEntry<"posts">;
 
-const { variant: Heading = "h2", id, data, filePath } = Astro.props;
+const {
+  variant: Heading = "h2",
+  showPrimaryType = false,
+  id,
+  data,
+  filePath,
+} = Astro.props;
 
-const { title, description, ...props } = data;
+const { title, description, tags, ...props } = data;
+const primaryType = showPrimaryType
+  ? BROWSE_TAGS.find(({ tag }) => tags.includes(tag))
+  : undefined;
 ---
 
 <li class="my-6">
@@ -18,7 +29,11 @@ const { title, description, ...props } = data;
     href={getPostUrl(id, filePath, Astro.currentLocale)}
     data-astro-prefetch="viewport"
     class:list={[
-      "text-accent inline-block text-lg font-medium",
+      "text-accent inline-block leading-snug",
+      {
+        "text-xl font-semibold sm:text-2xl": Heading === "h3",
+        "text-lg font-medium": Heading === "h2",
+      },
       "decoration-dashed underline-offset-4 hover:underline",
       "focus-visible:no-underline focus-visible:underline-offset-0",
     ]}
@@ -27,6 +42,6 @@ const { title, description, ...props } = data;
       {title}
     </Heading>
   </a>
-  <Datetime {...props} />
-  <p>{description}</p>
+  <Datetime {...props} label={primaryType?.label} />
+  <p class="mt-2 leading-relaxed font-normal">{description}</p>
 </li>

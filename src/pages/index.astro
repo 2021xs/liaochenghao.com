@@ -32,14 +32,23 @@ const githubUrl = "https://github.com/2021xs/liaochenghao.com";
     data-home-path={homePath}
     class="app-layout my-1"
   >
-    <section id="intro" class="border-border border-b py-8 sm:py-10">
-      <h1 class="text-2xl leading-tight font-semibold sm:text-3xl">
+    <section id="intro" class="border-border border-b py-7 sm:py-9">
+      <p
+        class="text-muted-foreground flex items-center gap-2 text-sm font-normal"
+      >
+        <span aria-hidden="true" class="bg-status size-2 shrink-0 rounded-full"
+        ></span>
+        <span>SEU · Hangzhou · ByteDance ing</span>
+      </p>
+      <h1 class="mt-3 text-lg leading-snug font-medium">
         Backend · Agent · Distributed Systems
       </h1>
-      <p class="mt-4 max-w-2xl leading-relaxed">
+      <p class="mt-3 max-w-2xl leading-relaxed font-normal">
         写技术、项目和面试复盘，也整理真正有用的工具、资源与经验。
       </p>
-      <div class="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+      <div
+        class="text-muted-foreground mt-4 flex flex-wrap items-center gap-2 text-sm font-normal"
+      >
         <a
           href={githubUrl}
           target="_blank"
@@ -48,6 +57,7 @@ const githubUrl = "https://github.com/2021xs/liaochenghao.com";
         >
           GitHub
         </a>
+        <span aria-hidden="true">·</span>
         <a
           href={rssPath}
           class="hover:text-accent decoration-dashed underline-offset-4 hover:underline"
@@ -57,44 +67,20 @@ const githubUrl = "https://github.com/2021xs/liaochenghao.com";
       </div>
     </section>
 
-    <section id="browse" class="border-border border-b py-10">
-      <h2 class="text-2xl font-semibold tracking-wide">Browse</h2>
-      <ul class="mt-5 grid gap-x-8 gap-y-3 sm:grid-cols-2">
-        {
-          BROWSE_TAGS.map(({ label, tag }) => (
-            <li>
-              <a
-                href={getRelativeLocaleUrl(locale, `tags/${tag}`)}
-                data-astro-prefetch="viewport"
-                class="hover:text-accent flex items-center justify-between border-b border-dashed py-2 font-medium"
-              >
-                <span>{label}</span>
-                <IconArrowRight
-                  aria-hidden="true"
-                  class="size-5 rtl:-rotate-180"
-                />
-              </a>
-            </li>
-          ))
-        }
-      </ul>
-    </section>
-
     {
       sortedPosts.length > 0 && (
-        <section id="latest" class="pt-10 pb-6">
-          <h2 class="text-2xl font-semibold tracking-wide">
-            {t.home.recentPosts}
-          </h2>
+        <section id="latest" class="border-border border-b py-10">
+          <h2 class="text-xl font-semibold">Latest Writing</h2>
           <ul>
             {sortedPosts.slice(0, postsConfig.perIndex).map(data => (
-              <Card variant="h3" {...data} />
+              <Card variant="h3" showPrimaryType {...data} />
             ))}
           </ul>
-          <div class="mt-8 text-center">
+          <div class="mt-7">
             <LinkButton
               href={getRelativeLocaleUrl(locale, "posts")}
               data-astro-prefetch="viewport"
+              class="text-muted-foreground text-sm font-medium"
             >
               {t.home.allPosts}
               <IconArrowRight class="inline-block rtl:-rotate-180" />
@@ -106,26 +92,30 @@ const githubUrl = "https://github.com/2021xs/liaochenghao.com";
 
     {
       sortedPosts.length === 0 && (
-        <section class="pt-12 pb-6">
+        <section class="border-border border-b py-10">
+          <h2 class="text-xl font-semibold">Latest Writing</h2>
           <p class="text-muted-foreground">No posts yet.</p>
         </section>
       )
     }
 
-    <section id="about" class="border-border mt-6 border-t py-10">
-      <h2 class="text-2xl font-semibold tracking-wide">About</h2>
-      <p class="mt-4">I'm Chenghao.</p>
-      <p class="mt-2 max-w-2xl leading-relaxed">
-        这里主要记录软件工程、后端、Agent、分布式系统、项目复盘、面试经历，以及值得长期保存的工具和经验。
-      </p>
-      <LinkButton
-        href={getRelativeLocaleUrl(locale, "about")}
-        data-astro-prefetch="viewport"
-        class="mt-4"
-      >
-        More about me
-        <IconArrowRight class="inline-block rtl:-rotate-180" />
-      </LinkButton>
+    <section id="browse" class="py-8 sm:py-9">
+      <h2 class="text-xl font-semibold">Browse</h2>
+      <ul class="mt-4 grid gap-x-8 gap-y-2 sm:grid-cols-2">
+        {
+          BROWSE_TAGS.map(({ label, tag }) => (
+            <li>
+              <a
+                href={getRelativeLocaleUrl(locale, `tags/${tag}`)}
+                data-astro-prefetch="viewport"
+                class="text-muted-foreground hover:text-accent focus-visible:text-accent inline-flex py-1 text-sm font-medium decoration-dashed underline-offset-4 hover:underline focus-visible:underline"
+              >
+                {label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
     </section>
   </main>
   <Footer />

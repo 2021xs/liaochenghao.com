@@ -15,6 +15,7 @@ type Props = {
   pubDatetime: string | Date;
   timezone?: string;
   modDatetime?: string | Date | null;
+  label?: string;
 };
 
 const {
@@ -23,6 +24,7 @@ const {
   size = "sm",
   class: className = "",
   timezone: postTimezone,
+  label,
 } = Astro.props;
 
 const t = useTranslations(Astro.currentLocale);
@@ -58,4 +60,12 @@ const date = datetime.format("D MMM, YYYY");
   >
     {date}
   </time>
+  {
+    label && (
+      <>
+        <span aria-hidden="true">·</span>
+        <span class="text-sm">{label}</span>
+      </>
+    )
+  }
 </div>
