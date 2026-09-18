@@ -11,7 +11,11 @@ import Pagination from "@/components/Pagination.astro";
 import { getUniqueTags } from "@/utils/getUniqueTags";
 import { getSortedPosts } from "@/utils/getSortedPosts";
 import { slugifyAll } from "@/utils/slugify";
-import { BROWSE_TAGS } from "@/utils/browseTags";
+import {
+  BROWSE_CATEGORIES,
+  getBrowseCategories,
+  getBrowseCategory,
+} from "@/utils/browseTags";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
@@ -21,15 +25,18 @@ export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
     getUniqueTags(posts).map(tag => [tag.tag, tag] as const)
   );
 
-  for (const { tag } of BROWSE_TAGS) {
-    if (!tagsBySlug.has(tag)) {
-      tagsBySlug.set(tag, { tag, tagName: tag });
-    }
+  for (const { tag, label } of BROWSE_CATEGORIES) {
+    tagsBySlug.set(tag, { tag, tagName: label });
   }
 
   return [...tagsBySlug.values()].flatMap(({ tag, tagName }) => {
+    const browseCategory = getBrowseCategory(tag);
     const tagPosts = getSortedPosts(
-      posts.filter(({ data }) => slugifyAll(data.tags).includes(tag))
+      posts.filter(({ data }) =>
+        browseCategory
+          ? getBrowseCategories(data.tags).includes(browseCategory)
+          : slugifyAll(data.tags).includes(tag)
+      )
     );
 
     return paginate(tagPosts, {

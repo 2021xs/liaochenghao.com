@@ -1,36 +1,31 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import { getPostUrl } from "@/utils/getPostPaths";
+import { getBrowseCategories } from "@/utils/browseTags";
 import { toTransitionName } from "@/utils/toTransitionName";
 import Datetime from "./Datetime.astro";
 
 type Props = {
   variant?: "h2" | "h3";
   articleBlock?: boolean;
-  showPrimaryType?: boolean;
+  showCategories?: boolean;
 } & CollectionEntry<"posts">;
-
-const CONTENT_TYPE_LABELS = [
-  { tag: "tech", label: "Engineering" },
-  { tag: "project", label: "Project" },
-  { tag: "interview", label: "Interview" },
-  { tag: "guide", label: "Guide" },
-  { tag: "thought", label: "Thought" },
-] as const;
 
 const {
   variant: Heading = "h2",
   articleBlock = false,
-  showPrimaryType = false,
+  showCategories = false,
   id,
   data,
   filePath,
 } = Astro.props;
 
 const { title, description, tags, ...props } = data;
-const primaryType =
-  articleBlock || showPrimaryType
-    ? CONTENT_TYPE_LABELS.find(({ tag }) => tags.includes(tag))
+const categoryLabel =
+  articleBlock || showCategories
+    ? getBrowseCategories(tags)
+        .map(({ metadataLabel }) => metadataLabel)
+        .join(" · ")
     : undefined;
 ---
 
@@ -45,7 +40,7 @@ const primaryType =
     articleBlock && (
       <Datetime
         {...props}
-        label={primaryType?.label}
+        label={categoryLabel}
         labelFirst
         hideIcon
         class="mb-2"
@@ -78,7 +73,7 @@ const primaryType =
       {title}
     </Heading>
   </a>
-  {!articleBlock && <Datetime {...props} label={primaryType?.label} />}
+  {!articleBlock && <Datetime {...props} label={categoryLabel} />}
   <p
     class:list={["leading-relaxed font-normal", articleBlock ? "mt-3" : "mt-2"]}
   >

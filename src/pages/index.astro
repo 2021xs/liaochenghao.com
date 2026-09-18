@@ -7,7 +7,7 @@ import Header from "@/components/Header.astro";
 import Footer from "@/components/Footer.astro";
 import Card from "@/components/Card.astro";
 import LinkButton from "@/components/LinkButton.astro";
-import { BROWSE_TAGS } from "@/utils/browseTags";
+import { BROWSE_CATEGORIES } from "@/utils/browseTags";
 import { getSortedPosts } from "@/utils/getSortedPosts";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
@@ -130,7 +130,7 @@ const emailUrl = config.socials.find(
       <h2 class="text-xl font-semibold">Browse</h2>
       <ul class="mt-4 grid gap-x-8 gap-y-2 sm:grid-cols-2">
         {
-          BROWSE_TAGS.map(({ label, tag }) => (
+          BROWSE_CATEGORIES.map(({ label, tag }) => (
             <li>
               <a
                 href={getRelativeLocaleUrl(locale, `tags/${tag}`)}
