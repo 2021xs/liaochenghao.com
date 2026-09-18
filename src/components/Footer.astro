@@ -1,5 +1,7 @@
 ---
 import type { HTMLAttributes } from "astro/types";
+import IconRss from "@/assets/icons/IconRss.svg";
+import LinkButton from "./LinkButton.astro";
 import Socials from "./Socials.astro";
 import { useTranslations } from "@/i18n";
 
@@ -20,7 +22,18 @@ const currentYear = new Date().getFullYear();
   <div
     class="border-border flex flex-col items-center justify-between border-t py-6 sm:flex-row-reverse sm:py-4"
   >
-    <Socials />
+    <div class="flex items-center gap-1">
+      <Socials />
+      <LinkButton
+        href={`${import.meta.env.BASE_URL.replace(/\/?$/, "/")}rss.xml`}
+        class="focus-outline p-2 sm:p-1"
+        title="RSS Feed"
+        aria-label="RSS Feed"
+      >
+        <IconRss class="size-6 fill-transparent stroke-current stroke-2" />
+        <span class="sr-only">RSS Feed</span>
+      </LinkButton>
+    </div>
     <div class="my-2 flex flex-col items-center whitespace-nowrap sm:flex-row">
       <span>{t.footer.copyright} &#169; {currentYear}</span>
       <span class="hidden sm:inline">&nbsp;|&nbsp;</span>

@@ -11,14 +11,23 @@ import Pagination from "@/components/Pagination.astro";
 import { getUniqueTags } from "@/utils/getUniqueTags";
 import { getSortedPosts } from "@/utils/getSortedPosts";
 import { slugifyAll } from "@/utils/slugify";
+import { BROWSE_TAGS } from "@/utils/browseTags";
 import { useTranslations } from "@/i18n";
 import config from "@/config";
 
 export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const posts = await getCollection("posts", ({ data }) => !data.draft);
-  const tags = getUniqueTags(posts);
+  const tagsBySlug = new Map(
+    getUniqueTags(posts).map(tag => [tag.tag, tag] as const)
+  );
 
-  return tags.flatMap(({ tag, tagName }) => {
+  for (const { tag } of BROWSE_TAGS) {
+    if (!tagsBySlug.has(tag)) {
+      tagsBySlug.set(tag, { tag, tagName: tag });
+    }
+  }
+
+  return [...tagsBySlug.values()].flatMap(({ tag, tagName }) => {
     const tagPosts = getSortedPosts(
       posts.filter(({ data }) => slugifyAll(data.tags).includes(tag))
     );
@@ -44,11 +53,19 @@ const t = useTranslations(locale);
 
   <Main
     pageTitle={`${t.pages.tagTitle}: ${tagName}`}
-    pageDesc={`${t.pages.tagDesc} "${tagName}".`}
+    pageDesc={page.data.length > 0
+      ? `${t.pages.tagDesc} "${tagName}".`
+      : `No writing in "${tagName}" yet.`}
   >
-    <ul>
-      {page.data.map(data => <Card {...data} />)}
-    </ul>
+    {
+      page.data.length > 0 && (
+        <ul>
+          {page.data.map(data => (
+            <Card {...data} />
+          ))}
+        </ul>
+      )
+    }
   </Main>
 
   <Pagination {page} />

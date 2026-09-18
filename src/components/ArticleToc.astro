@@ -1,0 +1,43 @@
+---
+type Heading = {
+  depth: number;
+  slug: string;
+  text: string;
+};
+
+type Props = {
+  headings: Heading[];
+};
+
+const { headings } = Astro.props;
+const items = headings.filter(({ depth }) => depth === 2 || depth === 3);
+---
+
+{
+  items.length > 0 && (
+    <aside class="absolute top-0 right-[calc(100%+1rem)] hidden h-full w-48 xl:block">
+      <details
+        open
+        class="sticky top-6 max-h-[calc(100vh-3rem)] overflow-y-auto pe-2"
+      >
+        <summary class="hover:text-accent focus-visible:text-accent cursor-pointer py-1 font-semibold">
+          On this page
+        </summary>
+        <nav aria-label="Table of contents" class="mt-3">
+          <ol class="space-y-2 text-sm leading-snug">
+            {items.map(({ depth, slug, text }) => (
+              <li class:list={{ "ms-3": depth === 3 }}>
+                <a
+                  href={`#${slug}`}
+                  class="text-muted-foreground hover:text-accent focus-visible:text-accent block break-words"
+                >
+                  {text}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
+      </details>
+    </aside>
+  )
+}

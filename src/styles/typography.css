@@ -4,6 +4,22 @@
   /* ===== Override default Tailwind Typography styles ===== */
   .app-prose {
     @apply prose;
+    min-width: 0;
+    max-width: 100%;
+    font-family:
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      "PingFang SC",
+      "Hiragino Sans GB",
+      "Microsoft YaHei",
+      sans-serif;
+    font-size: 1.0625rem;
+
+    p {
+      line-height: 1.8;
+    }
 
     h1,
     h2,
@@ -60,6 +76,11 @@
     }
 
     table {
+      display: block;
+      width: max-content;
+      max-width: 100%;
+      overflow-x: auto;
+
       th,
       td {
         @apply border-border border p-2;
@@ -87,6 +108,7 @@
 
     code {
       @apply bg-muted/75 text-foreground rounded p-1 wrap-break-word before:content-none after:content-none;
+      font-family: var(--font-google-sans-code), monospace;
     }
 
     .astro-code code {
@@ -107,6 +129,8 @@
 
     pre {
       @apply focus-visible:outline-accent focus-visible:border-transparent focus-visible:outline-2 focus-visible:outline-dashed;
+      max-width: 100%;
+      overflow-x: auto;
     }
   }
 

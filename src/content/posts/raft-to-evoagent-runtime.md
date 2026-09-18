@@ -7,6 +7,7 @@ tags:
   - distributed-systems
   - architecture
   - project
+  - tech
 draft: false
 ---
 
