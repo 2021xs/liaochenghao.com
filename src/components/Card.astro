@@ -29,10 +29,11 @@ const primaryType = showPrimaryType
     href={getPostUrl(id, filePath, Astro.currentLocale)}
     data-astro-prefetch="viewport"
     class:list={[
-      "text-accent inline-block leading-snug",
+      "text-accent inline-block",
       {
-        "text-xl font-semibold sm:text-2xl": Heading === "h3",
-        "text-lg font-medium": Heading === "h2",
+        "text-lg leading-[1.45] font-semibold sm:text-[1.375rem]":
+          Heading === "h3",
+        "text-lg leading-snug font-medium": Heading === "h2",
       },
       "decoration-dashed underline-offset-4 hover:underline",
       "focus-visible:no-underline focus-visible:underline-offset-0",

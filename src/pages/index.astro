@@ -22,6 +22,9 @@ const sortedPosts = getSortedPosts(posts);
 const homePath = getRelativeLocaleUrl(locale, "");
 const rssPath = `${import.meta.env.BASE_URL.replace(/\/?$/, "/")}rss.xml`;
 const githubUrl = "https://github.com/2021xs/liaochenghao.com";
+const emailUrl = config.socials.find(
+  ({ name, url }) => name === "mail" && url.startsWith("mailto:")
+)?.url;
 ---
 
 <Layout>
@@ -32,11 +35,24 @@ const githubUrl = "https://github.com/2021xs/liaochenghao.com";
     data-home-path={homePath}
     class="app-layout my-1"
   >
+    <section
+      id="status"
+      aria-label="Current status"
+      class="border-border bg-muted/30 mt-5 border-y px-3 py-2"
+    >
+      <p
+        class="text-muted-foreground flex items-center gap-2 text-sm font-normal"
+      >
+        <span aria-hidden="true" class="bg-status size-2 shrink-0 rounded-full"
+        ></span>
+        <span>SEU · Hangzhou · ByteDance ing</span>
+      </p>
+    </section>
+
     <section id="intro" class="border-border border-b py-7 sm:py-9">
       <h1 class="text-lg leading-snug font-medium">
         Backend · Agent · Distributed Systems
       </h1>
-      <p class="mt-3 font-normal">欢迎来到我的博客。</p>
       <div
         class="text-muted-foreground mt-4 flex flex-wrap items-center gap-2 text-sm font-normal"
       >
@@ -49,14 +65,32 @@ const githubUrl = "https://github.com/2021xs/liaochenghao.com";
           GitHub
         </a>
         <span aria-hidden="true">·</span>
+        {
+          emailUrl ? (
+            <a
+              href={emailUrl}
+              class="hover:text-accent decoration-dashed underline-offset-4 hover:underline"
+            >
+              Email
+            </a>
+          ) : (
+            <span
+              aria-label="Email address not configured"
+              aria-disabled="true"
+              title="Email address not configured"
+              class="cursor-default opacity-60"
+            >
+              Email
+            </span>
+          )
+        }
+        <span aria-hidden="true">·</span>
         <a
           href={rssPath}
           class="hover:text-accent decoration-dashed underline-offset-4 hover:underline"
         >
           RSS
         </a>
-        <span aria-hidden="true">·</span>
-        <span>Contact me: QQ 3084568168</span>
       </div>
     </section>
 

@@ -24,7 +24,13 @@ export default defineAstroPaperConfig({
     editPost: { enabled: false },
     search: "pagefind",
   },
-  socials: [],
+  socials: [
+    {
+      name: "mail",
+      url: "mailto:3084568168@qq.com",
+      linkTitle: "Email Chenghao Liao",
+    },
+  ],
   shareLinks: [
     { name: "whatsapp", url: "https://wa.me/?text=" },
     { name: "facebook", url: "https://www.facebook.com/sharer.php?u=" },
