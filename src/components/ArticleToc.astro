@@ -10,7 +10,7 @@ type Props = {
 };
 
 const { headings } = Astro.props;
-const items = headings.filter(({ depth }) => depth === 2 || depth === 3);
+const items = headings.filter(({ depth }) => depth === 2);
 ---
 
 {
@@ -25,8 +25,8 @@ const items = headings.filter(({ depth }) => depth === 2 || depth === 3);
         </summary>
         <nav aria-label="Table of contents" class="mt-3">
           <ol class="space-y-2 text-sm leading-snug">
-            {items.map(({ depth, slug, text }) => (
-              <li class:list={{ "ms-3": depth === 3 }}>
+            {items.map(({ slug, text }) => (
+              <li>
                 <a
                   href={`#${slug}`}
                   class="text-muted-foreground hover:text-accent focus-visible:text-accent block break-words"
